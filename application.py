@@ -32,7 +32,7 @@ def delete_rotation(pk):
 	return jsonify({'message': 'Rotation deleted'}), 200
 
 @app.route("/rotations", methods=["POST"])
-def new_quote():
+def new_rotation():
 	json_data = request.get_json()
 	if not json_data:
 		return jsonify({'message': 'No input data provided'}), 400
