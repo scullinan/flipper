@@ -18,9 +18,18 @@ def get_rotation(pk):
 	try:
 		rotation = RotationUrl.query.get(pk)
 	except IntegrityError:
-		return jsonify({"message": "Rotation could not be found."}), 400
+		return jsonify({"message": "Rotation could not be found."}), 404
 	rotation_result = rotation_schema.dump(rotation)   
 	return jsonify(rotation_result.data)
+
+@app.route("/rotations/<int:pk>", methods=["DELETE"])
+def delete_rotation(pk):
+	try:
+		rotation = RotationUrl.query.get(pk)
+	except IntegrityError:
+		return jsonify({"message": "Rotation could not be found."}), 404
+	RotationUrl.query.filter_by(id=pk).delete()	  
+	return jsonify({'message': 'Rotation deleted'}), 200
 
 @app.route("/rotations", methods=["POST"])
 def new_quote():
@@ -31,23 +40,17 @@ def new_quote():
 	data, errors = rotation_schema.load(json_data)
 	if errors:
 		return jsonify(errors), 422
-	name, path = data['name'], data['path']	
+	name, path, display_seconds = data['name'], data['path'], data.get('display_seconds',None)	
 	rotation = RotationUrl.query.filter_by(name=name, path=path).first()
 	if rotation is None:
 		# Create a new rotation
-		rotation = RotationUrl(name=name, path=path)
+		rotation = RotationUrl(name=name, path=path, display_seconds=display_seconds)
 		db_session.add(rotation)
 	
 	db_session.commit()
 	result = rotation_schema.dump(RotationUrl.query.get(rotation.id))
 	return jsonify({"message": "Created new rotation url.",
 					"rotation": result.data})
-
-def notNone(s,d):
-    if s is None:
-        return d
-    else:
-        return s
 
 if __name__ == '__main__':
 	init_db()
