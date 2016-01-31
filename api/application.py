@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify, make_response
 from database import db_session, init_db
 from models import RotationUrl, rotation_schema, rotations_schema
 from json import dumps
+from auth import requires_auth
 
 app = Flask(__name__)
 
@@ -15,6 +16,7 @@ def get_rotations():
 	return make_response(dumps(result.data))#jsonify won't do arrays pfff
 
 @app.route('/rotations', methods=["PUT"])
+@requires_auth
 def add_allrotations():
 	json_data = request.get_json()
 	if not json_data:
@@ -45,6 +47,7 @@ def get_rotation(pk):
 	return jsonify(rotation_result.data)
 
 @app.route("/rotations/<int:pk>", methods=["DELETE"])
+@requires_auth
 def delete_rotation(pk):
 	try:
 		rotation = RotationUrl.query.get(pk)
@@ -54,6 +57,7 @@ def delete_rotation(pk):
 	return jsonify({'message': 'Rotation deleted'}), 200
 
 @app.route("/rotations", methods=["POST"])
+@requires_auth
 def new_rotation():
 	json_data = request.get_json()
 	if not json_data:
