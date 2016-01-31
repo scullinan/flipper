@@ -13,5 +13,5 @@
    "name": "Flipper",
    "options_page": "options.html",
    "permissions": [ "tabs", "idle", "http://localhost:5000/" ],
-   "version": "0.1"
+   "version": "0.2"
 }

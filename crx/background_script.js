@@ -38,7 +38,7 @@ function stop(windowId) {
 // Switch to the next tab.
 function activateTab(nextTab) {
 	grabTabSettings(nextTab.windowId, nextTab, function(tabSetting){
-		if(tabSetting.reload && !include(settings.noRefreshList, nextTab.url) && nextTab.url.substring(0,19) != "chrome://extensions"){
+		if(tabSetting.reload && nextTab.url.substring(0,19) != "chrome://extensions"){
 			chrome.tabs.reload(nextTab.id, function(){
 				chrome.tabs.update(nextTab.id, {selected: true}, function(){
 					setMoverTimeout(tabSetting.windowId, tabSetting.seconds);
@@ -281,6 +281,7 @@ function createBaseSettingsIfTheyDontExist(){
 		settings.reload = false;
 		settings.inactive = false;
 		settings.autoStart = false;
+		settings.host = "http://localhost:5000"
 		localStorage["revolverSettings"] = JSON.stringify(settings);
 	} else {
 		settings = JSON.parse(localStorage["revolverSettings"]);
@@ -320,7 +321,7 @@ function updateSettings(){
 	settings = JSON.parse(localStorage["revolverSettings"]);
 	advSettings = JSON.parse(localStorage["revolverAdvSettings"]);
 
-	synchroniseTabs();
+	synchroniseTabs();//TODO: continuation
 
 	getAllTabsInCurrentWindow(function(tabs){
 		assignBaseSettings(tabs, function(){
@@ -335,41 +336,37 @@ function updateSettings(){
 
 function getRotationUrls(callback){
 	var xhr = new XMLHttpRequest();
-	xhr.open("GET", "http://localhost:5000/rotations", true);
+	xhr.open("GET", settings.host + "/rotations", true);
 	xhr.onreadystatechange = function() {
-	  if (xhr.readyState == 4) {
-	   
-	    if(xhr.status = 200)
-	    {
-	    	// JSON.parse does not evaluate the attacker's scripts.
-		    var resp = JSON.parse(xhr.responseText);
-		    localStorage["revolverAdvSettings"] = JSON.stringify(resp);
-	    	callback();
-	    }
-	    else
-	    {
-	    	callback()
-	    }	    
-	  }
+		if (xhr.readyState == 4) {	   
+			if(xhr.status = 200) {
+				// JSON.parse does not evaluate the attacker's scripts.
+				var resp = JSON.parse(xhr.responseText);
+				localStorage["revolverAdvSettings"] = JSON.stringify(resp);
+				callback();
+			}
+			else {
+				callback()
+			}	    
+		}
 	}
 	xhr.send();	
 }
 
 function addRotationUrls(urls, callback){
 	var xhr = new XMLHttpRequest();
-	xhr.open("PUT", "http://localhost:5000/rotations", true);
+	xhr.open("PUT", settings.host + "/rotations", true);
 	xhr.setRequestHeader("Content-type", "application/json");
+	xhr.setRequestHeader("Authorization", "Basic " + btoa(settings.username + ":" + settings.password));	
 	xhr.onreadystatechange = function() {
-	  if (xhr.readyState == 4) {
-	  	if(xhr.status = 200)
-	    {	    	
-	    	callback(true);
-	    }
-	    else
-	    {
-	    	callback(false)
-	    }    
-	  }
+	  	if (xhr.readyState == 4) {
+		  	if(xhr.status = 200) {	    	
+		    	callback(true);
+		    }
+		    else{
+		    	callback(false)
+		    }    
+	  	}
 	}
 	xhr.send(urls);
 }
@@ -377,20 +374,6 @@ function addRotationUrls(urls, callback){
 function synchroniseTabs(callback){
 	getAllTabsInCurrentWindow(function(tabs){
 		advSettings = JSON.parse(localStorage["revolverAdvSettings"]);
-
-		//close tabs that shuoldn't be open
-		for(var x=0;x<tabs.length;x++){
-			var missing=true;
-			for(var i=0;i<advSettings.length;i++){
-				if(advSettings[i].url == tabs[x].url){
-					missing=false;
-				}
-			}
-			if(missing && !isAChromeUrl(tabs[x].url)){
-				//chrome.tabs.remove(tabs[x].id)
-			}
-		}
-
 		//create tabs that should be open
 		for(var i=0;i<advSettings.length;i++){
 			var missing=true
@@ -408,7 +391,7 @@ function synchroniseTabs(callback){
 }
 
 function isAChromeUrl(url){
-	return (url.substring(0,19) == "chrome://extensions" || url.substring(0,19) == "chrome-extension://");
+	return (url.substring(0,19) == "chrome://extensions" || url.substring(0,16) == "chrome-extension");
 }
 
 function isARotationUrl(url){	

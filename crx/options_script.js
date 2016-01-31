@@ -6,7 +6,7 @@ function addEventListeners(){
     //if (localStorage["revolverAdvSettings"]) restoreAdvancedOptions();
     restoreAdvancedOptions(function(){
     	buildCurrentTabsList();
-    	document.querySelector('#save').addEventListener('click', saveAllOptions);
+    	document.querySelector('#save').addEventListener('click', saveBaseOptions);               
     });    
 }
 
@@ -18,15 +18,16 @@ function saveBaseOptions(callback) {
     bg.timeDelay = (document.getElementById("seconds").value*1000);
     getCheckedStatus(appSettings, "reload");
     getCheckedStatus(appSettings, "inactive");
-    getCheckedStatus(appSettings, "autostart");
-    appSettings.noRefreshList = document.getElementById('noRefreshList').value.split('\n');
-    bg.noRefreshList = document.getElementById('noRefreshList').value.split('\n');  
+    getCheckedStatus(appSettings, "autostart"); 
+    appSettings.host = document.getElementById("host").value;
+    appSettings.username = document.getElementById("username").value;
+    appSettings.password = document.getElementById("password").value;
     status.innerHTML = "OPTIONS SAVED";
     setTimeout(function() {
-        status.innerHTML = "";
-  }, 1000);
-  localStorage["revolverSettings"] = JSON.stringify(appSettings);
-  callback();
+            status.innerHTML = "";
+        }, 1000);
+    localStorage["revolverSettings"] = JSON.stringify(appSettings);
+    if (typeof callback === "function") { callback(); }
 }
 
 function getCheckedStatus(appSettings, elementId){
@@ -42,19 +43,25 @@ function getCheckedStatus(appSettings, elementId){
 function restoreOptions() {
     var appSettings = {};
     if (localStorage["revolverSettings"]) appSettings = JSON.parse(localStorage["revolverSettings"]);
-        document.getElementById("seconds").value = (appSettings.seconds || 10);
-        document.getElementById("reload").checked = (appSettings.reload || false);
-        document.getElementById("inactive").checked = (appSettings.inactive || false);
-        document.getElementById("autostart").checked = (appSettings.autostart || false);
-        if(appSettings.noRefreshList && appSettings.noRefreshList.length > 0){
-            for(var i=0;i<appSettings.noRefreshList.length;i++){
-                if(appSettings.noRefreshList[i]!= ""){
-                    document.getElementById("noRefreshList").value += (appSettings.noRefreshList[i]+"\n");    
-                };
-            };
-        } else {
-            document.getElementById("noRefreshList").value = "";    
-        }
+    document.getElementById("seconds").value = (appSettings.seconds || 10);
+    document.getElementById("reload").checked = (appSettings.reload || false);
+    document.getElementById("inactive").checked = (appSettings.inactive || false);
+    document.getElementById("autostart").checked = (appSettings.autostart || false);
+    if(appSettings.host ){           
+        document.getElementById("host").value = appSettings.host;              
+    } else {
+         document.getElementById("host").value = "http://localhost:5000";    
+    } 
+    if(appSettings.username ){           
+        document.getElementById("username").value = appSettings.username;              
+    } else {
+         document.getElementById("username").value = "";    
+    } 
+    if(appSettings.password ){           
+        document.getElementById("password").value = appSettings.password;              
+    } else {
+         document.getElementById("password").value = "";    
+    }         
 }
 
 //Advanced options code
@@ -64,6 +71,19 @@ function saveAdvancedOptions(callback){
         advancedDivs = advancedSettings.getElementsByTagName("div"),
         status = document.getElementById("status3"),
         divInputTags;
+
+    var appSettings = JSON.parse(localStorage["revolverSettings"]);
+    if(!(/^(ftp|http|https):\/\/[^ "]+$/.test(appSettings.host))) {
+        status.innerHTML = "A VALID API HOST REQUIRED!"
+        setTimeout(function() { status.innerHTML = ""; }, 1000);       
+        return false;
+    }
+    if(appSettings.username==="" || appSettings.password==="") {
+        status.innerHTML = "USERNAME AND PASSWORD REQUIRED!"
+        setTimeout(function() { status.innerHTML = ""; }, 1000);       
+        return false;
+    }     
+    
     for(var i = 0, checkboxes=0;i<advancedDivs.length;i++){
        if(advancedDivs[i].getElementsByClassName("enable")[0].checked == true){
             divInputTags = advancedDivs[i].getElementsByTagName("input");
@@ -71,25 +91,26 @@ function saveAdvancedOptions(callback){
             advUrlObjectArray.push({
                 "url" : advancedDivs[i].getElementsByClassName("url-text")[0].value,
                 "reload" : divInputTags[3].checked,
-                "seconds" : divInputTags[2].value,
-                "favIconUrl": advancedDivs[i].getElementsByClassName("icon")[0].src
+                "seconds" : divInputTags[2].value
             });                       
        }
     }
 
 	//save to api 
-    bg.addRotationUrls(JSON.stringify(advUrlObjectArray),function(success){    	
+    bg.addRotationUrls(JSON.stringify(advUrlObjectArray), function(success) {    	
         if(success){
         	localStorage["revolverAdvSettings"] = JSON.stringify(advUrlObjectArray);
-        	bg.updateSettings();
+            if(bg.windowStatus[chrome.windows.WINDOW_ID_CURRENT] == "on") {
+                bg.updateSettings();
+            }        	
         	status.innerHTML = "OPTIONS SAVED";
-        }else{
+        } else {
         	status.innerHTML = "AN ERROR OCCURED, NOT SAVED"
         }
         setTimeout(function() {
             status.innerHTML = "";
          }, 1000);
-        callback();
+        if (typeof callback === "function") { callback(); }
     });       
 }
 

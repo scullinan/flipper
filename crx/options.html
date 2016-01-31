@@ -2,7 +2,7 @@
 <head><title>Options :: Flipper</title></head>
 <style type="text/css">
 body {font-family: arial, sans-serif;margin:2em;background-color:#f1f1f1;}
-div#topline {background-image:url('revolver_t_48.png');background-repeat: no-repeat;padding:0 5px 5px 55px;}
+div#topline {background-image:url('flipper_48.png');background-repeat: no-repeat;padding:0 5px 5px 55px;}
 h1 {margin:0;padding:0;letter-spacing:-2px;}
 span.byline {font-size:.7em;color:#999;}
 span.byline a {color:#777;}
@@ -18,21 +18,21 @@ span#status, span#status3 {color:#ff6103;padding:0 1em;font-weight:bold;font-siz
 div.saveheader {margin:.5em 2em .5em 0;text-align:right;}
 p.thanks {font-size:.8em;margin:2em 0;}
 img.icon {height:15px;width:15px;margin-right:5px}
-#topline>img {float:left;clear:both;margin-right:10px;}
 
 </style>
 <body>
 <div id="topline">
-<img src="flipper_48.png"/>
 <h1>Flipper</h1>
-<span class="byline">by <a href="https://github.com/scullinan/flipper">Stuart Cullinan</a> </span>
+<span class="byline">by <a href="https://github.com/scullinan">Stuart Cullinan</a> </span>
 <div class="saveheader"></div>
 </div>
 <div id="settings">
+<p><label for="host">Api Host:</label> <input type="text" name="host" id="host" style="width:400px;"><span class="example">The host url for the backend API ex. <strong>http://localhost:5000</strong></span></p>
+<p><label for="username">Username:</label> <input type="text" name="username" id="username" style="width:150px;">
+<label for="password">Password:</label> <input type="password" name="password" id="password" style="width:150px;"><span class="example">Username and Password is required to save advanced settings only.</span></p>
 <p><label for="seconds">Seconds:</label> <input type="text" name="seconds" id="seconds" style="width:30px;"><span class="example">The number of seconds to show a tab before switching ex. <strong>10</strong></span></p>
 <p><label for="autostart">Auto Start:</label> <input type="checkbox" name="autostart" id="autostart"><span class="example">Automatically start Flipper on browser startup.</span></p>
 <p><label for="reload">Reload:</label> <input type="checkbox" name="reload" id="reload"><span class="example">Check this box to reload the tab each time before it is shown.</span></p>
-<p><label for="noRefreshList">Blacklist for URLs that should not be reloaded:</label> <textarea name="noRefreshList" id="noRefreshList" rows="10" cols="80"></textarea><span class="example">The list should have full URLs, each separated by a new line</span></p>
 <p><label for="inactive">Flip only when inactive:</label> <input type="checkbox" name="inactive" id="inactive"><span class="example"><strong>Flipping will pause</strong> if the browser has been interacted with within 15 seconds.</span></p>
 <button id="save">Save</button><span id="status"></span>
 </div>
