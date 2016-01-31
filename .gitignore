@@ -25,7 +25,7 @@ var/
 *.egg
 
 #database files
-database.db*
+api/database.db*
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

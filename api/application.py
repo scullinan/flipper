@@ -1,17 +1,39 @@
 # http://flask.pocoo.org/docs/0.10/quickstart/#a-minimal-application
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from database import db_session, init_db
 from models import RotationUrl, rotation_schema, rotations_schema
+from json import dumps
 
 app = Flask(__name__)
 
-@app.route('/rotations')
+@app.route('/rotations', methods=["GET"])
 def get_rotations():
-	rotations = RotationUrl.query.all()
+	rotations = RotationUrl.query.all()	
 	# Serialize the queryset
 	result = rotations_schema.dump(rotations)
-	return jsonify({'rotations':result.data})
+	return make_response(dumps(result.data))#jsonify won't do arrays pfff
+
+@app.route('/rotations', methods=["PUT"])
+def add_allrotations():
+	json_data = request.get_json()
+	if not json_data:
+		return jsonify({'message': 'No input data provided'}), 400
+
+	RotationUrl.query.delete()
+
+	for u in json_data:
+		# Validate and deserialize input
+		data, errors = rotation_schema.load(u)
+		if errors:
+			return jsonify(errors), 422
+		url, seconds, reload = data['url'], data.get('seconds',None), data.get('reload',None)			
+		# Create a new rotation
+		rotation = RotationUrl(url=url, seconds=seconds, reload=reload)
+		db_session.add(rotation)
+		
+	db_session.commit()
+	return jsonify({"message": "Rotations were all added successfully"})
 
 @app.route("/rotations/<int:pk>")
 def get_rotation(pk):
@@ -40,11 +62,11 @@ def new_rotation():
 	data, errors = rotation_schema.load(json_data)
 	if errors:
 		return jsonify(errors), 422
-	name, path, display_seconds = data['name'], data['path'], data.get('display_seconds',None)	
-	rotation = RotationUrl.query.filter_by(name=name, path=path).first()
+	url, seconds, reload = data['url'], data.get('seconds',None), data.get('reload',None)	
+	rotation = RotationUrl.query.filter_by(url=url).first()
 	if rotation is None:
 		# Create a new rotation
-		rotation = RotationUrl(name=name, path=path, display_seconds=display_seconds)
+		rotation = RotationUrl(url=url, seconds=seconds, reload=reload)
 		db_session.add(rotation)
 	
 	db_session.commit()

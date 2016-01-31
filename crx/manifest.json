@@ -1,0 +1,17 @@
+{
+   "manifest_version": 2,
+   "background": { "page": "bg.html" },
+   "browser_action": {
+      "default_icon": "flipper_19.png",
+      "default_title": "Flipper - Automatically flip through configured tabs."
+   },
+   "description": "Automatically flip through configured tabs. By Stuart Cullinan",
+   "icons": {
+      "128": "flipper_128.png",
+      "48": "flipper_48.png"
+   },
+   "name": "Flipper",
+   "options_page": "options.html",
+   "permissions": [ "tabs", "idle", "http://localhost:5000/" ],
+   "version": "0.1"
+}
