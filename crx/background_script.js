@@ -333,13 +333,13 @@ function updateSettings(){
 		});
 	});
 }
-
+//GETs all urls from the server
 function getRotationUrls(callback){
 	var xhr = new XMLHttpRequest();
 	xhr.open("GET", settings.host + "/rotations", true);
 	xhr.onreadystatechange = function() {
 		if (xhr.readyState == 4) {	   
-			if(xhr.status = 200) {
+			if(xhr.status == 200) {
 				// JSON.parse does not evaluate the attacker's scripts.
 				var resp = JSON.parse(xhr.responseText);
 				localStorage["revolverAdvSettings"] = JSON.stringify(resp);
@@ -352,7 +352,7 @@ function getRotationUrls(callback){
 	}
 	xhr.send();	
 }
-
+//PUTs entire url collection to the server
 function addRotationUrls(urls, callback){
 	var xhr = new XMLHttpRequest();
 	xhr.open("PUT", settings.host + "/rotations", true);
@@ -360,11 +360,14 @@ function addRotationUrls(urls, callback){
 	xhr.setRequestHeader("Authorization", "Basic " + btoa(settings.username + ":" + settings.password));	
 	xhr.onreadystatechange = function() {
 	  	if (xhr.readyState == 4) {
-		  	if(xhr.status = 200) {	    	
-		    	callback(true);
+		  	if(xhr.status == 200) {	    	
+		    	callback(true, "OPTIONS SAVED");
+		    }
+		    else if(xhr.status == 401){
+		    	callback(false,"AUTHENTICATION FAILED, CHECK USERNAME AND PASSWORD")
 		    }
 		    else{
-		    	callback(false)
+		    	callback(false, "AN ERROR OCCURRED, NOT SAVED!")
 		    }    
 	  	}
 	}

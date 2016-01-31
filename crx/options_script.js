@@ -97,15 +97,15 @@ function saveAdvancedOptions(callback){
     }
 
 	//save to api 
-    bg.addRotationUrls(JSON.stringify(advUrlObjectArray), function(success) {    	
+    bg.addRotationUrls(JSON.stringify(advUrlObjectArray), function(success, msg) {    	
         if(success){
         	localStorage["revolverAdvSettings"] = JSON.stringify(advUrlObjectArray);
             if(bg.windowStatus[chrome.windows.WINDOW_ID_CURRENT] == "on") {
                 bg.updateSettings();
             }        	
-        	status.innerHTML = "OPTIONS SAVED";
+        	status.innerHTML = msg;
         } else {
-        	status.innerHTML = "AN ERROR OCCURED, NOT SAVED"
+        	status.innerHTML = msg;
         }
         setTimeout(function() {
             status.innerHTML = "";
