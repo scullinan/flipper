@@ -17,7 +17,7 @@ function initSettings(){
 }
 // **** Tab Functionality ****
 // Start revolving the tabs
-function go(windowId) {
+function go(windowId) {	
 	chrome.tabs.query({"windowId": windowId, "active": true}, function(tab){
 			grabTabSettings(windowId, tab[0], function(tabSetting){
 				setMoverTimeout(windowId, tabSetting.seconds);
@@ -25,7 +25,6 @@ function go(windowId) {
 				badgeTabs('on', windowId);
 			});	
 		});
-	synchroniseTabs(function(){});
 }
 // Stop revolving the tabs
 function stop(windowId) {
@@ -72,36 +71,41 @@ function moveTabIfIdle(timerWindowId, tabTimeout) {
 }
 // Switches to next tab in the index, re-requests feed if at end of the index.
 function moveTab(timerWindowId) {
-	var nextTabIndex = 0;
-	chrome.tabs.getSelected(timerWindowId, function(currentTab){
-		chrome.tabs.getAllInWindow(timerWindowId, function(tabs) {
-			
-			if(currentTab.index + 1 < tabs.length) {
-				nextTabIndex = currentTab.index + 1;
-			} else {
-				nextTabIndex = 0;
-			}
-			
-			nextTabIndex = tryGetNextNonChromeTabIndex(tabs, nextTabIndex, nextTabIndex);			
+	getRotationUrls(function(){
+		chrome.tabs.query({"windowId": timerWindowId},function(tabs){		
+			synchroniseTabs(tabs, timerWindowId, function(){
+				updateSettings(function(){
+					var nextTabIndex = 0;
+					chrome.tabs.getSelected(timerWindowId, function(currentTab){
+						chrome.tabs.getAllInWindow(timerWindowId, function(tabs) {
+							
+							if(currentTab.index + 1 < tabs.length) {
+								nextTabIndex = currentTab.index + 1;
+							} else {
+								nextTabIndex = 0;
+							}
+							
+							nextTabIndex = tryGetNextTabIndex(tabs, nextTabIndex, nextTabIndex);			
 
-			activateTab(tabs[nextTabIndex]);
-
-			getRotationUrls(function(){
-				updateSettings();
+							activateTab(tabs[nextTabIndex]);
+						});
+					});
+				});
 			})
-
-		});
+		})
 	});
 }
-function tryGetNextNonChromeTabIndex(tabs,index,original){		
+
+//try to get the next rotationurl
+function tryGetNextTabIndex(tabs,index,original){		
 	if(!isARotationUrl(tabs[index].url)){
-		if(index < tabs.length) {
+		if(index < tabs.length-1) {
 			index++;
 		} else {
 			index=0;
 		}
 		if(index == original) return original;//recursive break
-		return tryGetNextNonChromeTabIndex(tabs, index, original);
+		return tryGetNextTabIndex(tabs, index, original);
 
 	}else{
 		return index;
@@ -252,7 +256,7 @@ function assignBaseSettings(tabs, callback) {
 		tabs[i].reload = (tabs[i].reload || settings.reload);
 		tabs[i].seconds = (tabs[i].seconds || settings.seconds);	
 	};
-	callback();
+	callback(tabs);
 }
 // If there are advanced settings for the URL, set them to the tab.
 function assignAdvancedSettings(tabs, callback) {
@@ -264,7 +268,7 @@ function assignAdvancedSettings(tabs, callback) {
 			}
 		}	
 	}
-	callback();
+	callback(tabs);
 }
 // Get the settings for a tab.
 function grabTabSettings(windowId, tab, callback) {
@@ -282,6 +286,8 @@ function createBaseSettingsIfTheyDontExist(){
 		settings.inactive = false;
 		settings.autoStart = false;
 		settings.host = "http://localhost:5000"
+		settings.username = ""
+		settings.password = ""
 		localStorage["revolverSettings"] = JSON.stringify(settings);
 	} else {
 		settings = JSON.parse(localStorage["revolverSettings"]);
@@ -317,18 +323,22 @@ function createTabsManifest(windowId, callback){
 	});
 }
 //If a user changes settings this will update them on the fly.  Called from options_script.js
-function updateSettings(){
+function updateSettings(callback){
 	settings = JSON.parse(localStorage["revolverSettings"]);
-	advSettings = JSON.parse(localStorage["revolverAdvSettings"]);
-
-	synchroniseTabs();//TODO: continuation
+	advSettings = JSON.parse(localStorage["revolverAdvSettings"]);	
 
 	getAllTabsInCurrentWindow(function(tabs){
-		assignBaseSettings(tabs, function(){
-			assignAdvancedSettings(tabs, function(){
-				createTabsManifest(tabs[0].windowId, function(){
-					return true;	
-				});
+		assignBaseSettings(tabs, function(tabs){
+			assignAdvancedSettings(tabs, function(tabs){
+				var winId = (tabs.length>0)?tabs[0].windowId : chrome.windows.WINDOW_ID_CURRENT;
+				createTabsManifest(winId, function(){
+					if(typeof callback === 'function'){
+						callback();
+					}
+					else{
+						return true;
+					}	
+				});				
 			});
 		});
 	});
@@ -354,6 +364,7 @@ function getRotationUrls(callback){
 }
 //PUTs entire url collection to the server
 function addRotationUrls(urls, callback){
+	settings = JSON.parse(localStorage["revolverSettings"]);
 	var xhr = new XMLHttpRequest();
 	xhr.open("PUT", settings.host + "/rotations", true);
 	xhr.setRequestHeader("Content-type", "application/json");
@@ -374,31 +385,40 @@ function addRotationUrls(urls, callback){
 	xhr.send(urls);
 }
 
-function synchroniseTabs(callback){
-	getAllTabsInCurrentWindow(function(tabs){
-		advSettings = JSON.parse(localStorage["revolverAdvSettings"]);
-		//create tabs that should be open
-		for(var i=0;i<advSettings.length;i++){
-			var missing=true
-			for(var x=0;x<tabs.length;x++){
-				if(advSettings[i].url == tabs[x].url){
-					missing=false;
-				}
-			}
-			if(missing){
-				chrome.tabs.create({ url: advSettings[i].url, windowId: tabs[0].windowId, active: false })
+function synchroniseTabs(tabs, windowId, callback){	
+	//remove tabs that are not in settings
+	for(var i=0;i<tabs.length;i++){
+		var orphan=true
+		for(var x=0;x<advSettings.length;x++){
+			if(advSettings[x].url == tabs[i].url){
+				orphan=false;
 			}
 		}
-		callback();
-	});	
+		if(orphan && !isAChromeUrl(tabs[i].url)){
+			chrome.tabs.remove(tabs[i].id)
+		}
+	}	
+
+	//create tabs that should be open
+	for(var i=0;i<advSettings.length;i++){
+		var missing=true
+		for(var x=0;x<tabs.length;x++){
+			if(advSettings[i].url == tabs[x].url){
+				missing=false;
+			}
+		}
+		if(missing){
+			chrome.tabs.create({ url: advSettings[i].url, windowId: windowId, active: false })
+		}
+	}
+	callback();	
 }
 
 function isAChromeUrl(url){
 	return (url.substring(0,19) == "chrome://extensions" || url.substring(0,16) == "chrome-extension");
 }
 
-function isARotationUrl(url){	
-	advSettings = JSON.parse(localStorage["revolverAdvSettings"]);
+function isARotationUrl(url){		
 	for(var i=0;i<advSettings.length;i++){
 		if(advSettings[i].url==url){
 			return true;
