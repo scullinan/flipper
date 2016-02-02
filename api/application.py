@@ -13,7 +13,7 @@ def get_rotations():
 	rotations = RotationUrl.query.all()	
 	# Serialize the queryset
 	result = rotations_schema.dump(rotations)
-	return make_response(dumps(result.data))#jsonify won't do arrays pfff
+	return make_response(dumps(result.data)), 200, {"Content-Type":"application/json"}
 
 @app.route('/rotations', methods=["PUT"])
 @requires_auth
@@ -80,4 +80,4 @@ def new_rotation():
 
 if __name__ == '__main__':
 	init_db()
-	app.run(debug=True, port=5000)
+	app.run(debug=True, port=5000, host='0.0.0.0')
